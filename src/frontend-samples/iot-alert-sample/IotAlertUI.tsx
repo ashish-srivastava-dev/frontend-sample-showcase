@@ -122,7 +122,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
     const notifyMessage = new NotifyMessageDetails(OutputMessagePriority.None, ``, `Alert coming from element ${tag}.`, OutputMessageType.Toast, OutputMessageAlert.None);
     notifyMessage.relativePosition = RelativePosition.BottomLeft;
     notifyMessage.displayPoint = new Point2d(19, 78);
-    notifyMessage.displayTime = BeDuration.fromMilliseconds(500000);
+    notifyMessage.displayTime = BeDuration.fromMilliseconds(5000);
     // IModelApp.notifications.outputMessage(notifyMessage);
     // notifyMessage.viewport = vp;
     return notifyMessage;
