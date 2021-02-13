@@ -132,8 +132,8 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
 
   /** Components for rendering the sample's instructions and controls */
   private getControls() {
-    const disableCreateAlertButton = !this.state.isImodelReady && IotAlertApp.getSelectedElements().length === 0 && IotAlertApp.getBlinkingElementSet().size !== 0 && this.state.wantEmphasis;
-    const disableClearAllAlertButton = !this.state.isImodelReady && !this.state.wantEmphasis && IotAlertApp.getBlinkingElementSet().size !== 0;
+    const enableCreateAlertButton = (this.state.isImodelReady && IotAlertApp.getBlinkingElementSet().size === 0);
+    const enableClearAllAlertButton = this.state.isImodelReady && IotAlertApp.getBlinkingElementSet().size !== 0;
     const tags = Array.from(IotAlertApp.getBlinkingElementSet());
 
     return (
@@ -153,8 +153,8 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
           />
           <span>Alert</span>
           <div className="sample-options-2col-1">
-            <Button buttonType={ButtonType.Primary} onClick={() => this._onToggleEmphasis(true)} disabled={disableCreateAlertButton}>Create</Button>
-            <Button buttonType={ButtonType.Primary} onClick={() => this._clearAll(false)} disabled={disableClearAllAlertButton}>Clear all</Button>
+            <Button buttonType={ButtonType.Primary} onClick={() => this._onToggleEmphasis(true)} disabled={!enableCreateAlertButton}>Create</Button>
+            <Button buttonType={ButtonType.Primary} onClick={() => this._clearAll(false)} disabled={!enableClearAllAlertButton}>Clear all</Button>
           </div>
           <span>Active Alert(s) </span>
           {this.state.wantEmphasis ?
