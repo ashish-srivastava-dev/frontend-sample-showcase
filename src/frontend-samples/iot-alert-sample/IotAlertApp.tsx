@@ -12,9 +12,61 @@ import SampleApp from "common/SampleApp";
 
 export default class IotAlertApp implements SampleApp {
   private static elementNameIdMap: Map<string, string> = new Map();
-  public static async setup(iModelName: string, iModelSelector: React.ReactNode) {
-    return <IotAlertUI iModelName={iModelName} iModelSelector={iModelSelector} elementsMap={IotAlertApp.elementMap} tags={IotAlertApp.tags} />;
+  private static blinkingElementSet = new Set<string>();
+  private static selectedElements: string[] = [];
+
+  public static getElementNameIdMap() {
+    return IotAlertApp.elementNameIdMap;
   }
+
+  public static setElementNameIdMap(elementNameIdMap: any) {
+    for (const [key, value] of elementNameIdMap) {
+      IotAlertApp.elementNameIdMap.set(key, value);
+    }
+  }
+
+  public static getBlinkingElementSet() {
+    return this.blinkingElementSet;
+  }
+
+  public static setBlinkingElementSet(selectedElement: string) {
+    if (selectedElement === undefined) {
+      return;
+    }
+    IotAlertApp.blinkingElementSet.add(selectedElement);
+  }
+
+  public static clearBlinkingElementSet() {
+    IotAlertApp.blinkingElementSet.clear();
+  }
+
+  public static getSelectedElements() {
+    return this.selectedElements;
+  }
+
+  public static setSelectedElements(selectedElement: string) {
+    if (selectedElement === undefined) {
+      return;
+    }
+    IotAlertApp.selectedElements.push(selectedElement);
+  }
+
+  public static clearSelectedElements() {
+    IotAlertApp.selectedElements = [];
+  }
+
+  public static getElements() {
+    return this.elementMap;
+  }
+
+  public static setBlinkingElements(elements: string[]) {
+    IotAlertApp.blinkingElementSet.clear();
+    for (const t of elements) {
+      IotAlertApp.setBlinkingElementSet(t);
+    }
+  }
+
+  private static elementMap: string[];
 
   public static zoomToElements = async (id: string) => {
     const viewChangeOpts: ViewChangeOptions = {};
@@ -23,12 +75,9 @@ export default class IotAlertApp implements SampleApp {
     const ids = new Set<string>();
     const m = IotAlertApp.getElementNameIdMap();
     for (const [key, value] of m) {
-      // const selectedElements = IotAlertApp.getSelectedElements();
-      // for (const element of selectedElements) {
       if (key === id) {
         ids.add(value);
       }
-      // }
     }
     await vp.zoomToElements(ids, { ...viewChangeOpts });
   }
@@ -44,57 +93,19 @@ export default class IotAlertApp implements SampleApp {
       elementNames.push(element.cOMPONENT_NAME);
       elementNameIdMap.set(element.cOMPONENT_NAME, element.id);
     }
-    // this.setState(elementNames);
     IotAlertApp.setElementNameIdMap(elementNameIdMap);
-
-    if (Array.isArray(elementNames) && elementNames.length) {
-      IotAlertApp.setSelectedElements(elementNames[0]);
-    }
-
     return elementNames;
   }
 
-  public static setElementNameIdMap(elementNameIdMap: any) {
-    for (const [key, value] of elementNameIdMap) {
-      IotAlertApp.elementNameIdMap.set(key, value);
-    }
+  public static async fetchElements(imodel: IModelConnection, c: string) {
+    const elementMapQuery = `SELECT * FROM ProcessPhysical.${c}`;
+    IotAlertApp.elementMap = await this._executeQuery(imodel, elementMapQuery);
   }
 
-  public static getElementNameIdMap() {
-    return IotAlertApp.elementNameIdMap;
+  public static async setup(iModelName: string, iModelSelector: React.ReactNode) {
+    return <IotAlertUI iModelName={iModelName} iModelSelector={iModelSelector} elementsMap={IotAlertApp.elementMap} />;
   }
 
-  public static setSelectedElements(selectedElement: string) {
-    if (selectedElement === undefined) {
-      return;
-    }
-    IotAlertApp.selectedElementSet.add(selectedElement);
-  }
-
-  private static elementMap: string[];
-  private static tags: string[];
-  public static getTags() {
-    let arr: string[] = [];
-    const tagsSet = IotAlertApp.getSelectedElements();
-    if (tagsSet !== undefined && tagsSet.size > 0) {
-      arr = Array.from(tagsSet);
-    }
-    return arr;
-  }
-  public static setTags(newTags: string[]) {
-    IotAlertApp.tags = newTags;
-    IotAlertApp.selectedElementSet.clear();
-    for (const t of newTags) {
-      IotAlertApp.setSelectedElements(t);
-    }
-  }
-  private static selectedElementSet = new Set<string>();
-  public static getSelectedElements() {
-    return this.selectedElementSet;
-  }
-  public static getElements() {
-    return this.elementMap;
-  }
   public static teardown() {
     const vp = IModelApp.viewManager.selectedView;
 
@@ -106,11 +117,6 @@ export default class IotAlertApp implements SampleApp {
     emph.clearHiddenElements(vp);
     emph.clearIsolatedElements(vp);
     emph.clearOverriddenElements(vp);
-  }
-
-  public static async fetchElements(imodel: IModelConnection, c: string) {
-    const elementMapQuery = `SELECT * FROM ProcessPhysical.${c}`;
-    IotAlertApp.elementMap = await this._executeQuery(imodel, elementMapQuery);
   }
 
   private static _executeQuery = async (imodel: IModelConnection, query: string) => {
@@ -137,7 +143,7 @@ abstract class EmphasizeActionBase {
       const m = IotAlertApp.getElementNameIdMap();
       // console.log(`EmphasizeActionBase m: ${m}`);
       for (const [key, value] of m) {
-        const selectedElements = IotAlertApp.getSelectedElements();
+        const selectedElements = IotAlertApp.getBlinkingElementSet();
         // console.log(`EmphasizeActionBase selectedElement: ${selectedElement}`);
         for (const element of selectedElements) {
           if (key === element) {
