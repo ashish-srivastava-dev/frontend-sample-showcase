@@ -18,10 +18,8 @@ import { BeDuration } from "@bentley/bentleyjs-core";
 
 /** React state of the Sample component */
 interface IotAlertState {
-  selectionIsEmpty: boolean;
   overrideIsActive: boolean;
   wantEmphasis: boolean;
-  colorValue: ColorDef;
   elementsMap: Map<string, []>;
   elementNameIdMap: Map<string, string>;
   elements: string[];
@@ -35,10 +33,8 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
   constructor(props?: any) {
     super(props);
     this.state = {
-      selectionIsEmpty: true,
       overrideIsActive: false,
       wantEmphasis: false,
-      colorValue: ColorDef.red,
       elementsMap: new Map(),
       elementNameIdMap: new Map(),
       elements: ["EX-201", "EX-202", "EX-203", "EX-204", "EX-205"],
@@ -91,13 +87,13 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
       classElementsMap.set(c, elements);
     }
     this.setState({ elementsMap: classElementsMap });
-    const elementNames = IotAlertApp.fetchElementsFromClass("SHELL_AND_TUBE_HEAT_EXCHANGER_PAR", this.state.elementsMap);
+    const elementNames = IotAlertApp.getElementsFromClass("SHELL_AND_TUBE_HEAT_EXCHANGER_PAR", this.state.elementsMap);
     this.setState(elementNames);
     this.setState({ isImodelReady: true });
   }
 
   private _onClassChange = (e: any) => {
-    const elementNames = IotAlertApp.fetchElementsFromClass(e.target.value, this.state.elementsMap);
+    const elementNames = IotAlertApp.getElementsFromClass(e.target.value, this.state.elementsMap);
     this.setState({ elements: elementNames });
   }
 

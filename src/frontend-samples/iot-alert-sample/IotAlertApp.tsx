@@ -82,7 +82,7 @@ export default class IotAlertApp implements SampleApp {
     await vp.zoomToElements(ids, { ...viewChangeOpts });
   }
 
-  public static fetchElementsFromClass = (className: string, elementsMap: Map<string, []>) => {
+  public static getElementsFromClass = (className: string, elementsMap: Map<string, []>) => {
     const classElements: any = elementsMap.get(className);
     const elementNames: any = [];
     const elementNameIdMap = new Map();
