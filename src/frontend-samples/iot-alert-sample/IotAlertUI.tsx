@@ -27,7 +27,7 @@ interface IotAlertState {
 }
 
 /** A React component that renders the UI specific for this sample */
-export default class IotAlertUI extends React.Component<{ iModelName: string, iModelSelector: React.ReactNode, elementsMap: string[] }, IotAlertState> {
+export default class IotAlertUI extends React.Component<{ iModelName: string, iModelSelector: React.ReactNode }, IotAlertState> {
 
   /** Creates an Sample instance */
   constructor(props?: any) {
@@ -82,8 +82,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
   private _onIModelReady = async (imodel: IModelConnection) => {
     const classElementsMap = new Map();
     for (const c of this.classList) {
-      await IotAlertApp.fetchElements(imodel, c);
-      const elements = IotAlertApp.getElements();
+      const elements = await IotAlertApp.fetchElements(imodel, c);
       classElementsMap.set(c, elements);
     }
     this.setState({ elementsMap: classElementsMap });
@@ -128,7 +127,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
 
   /** Components for rendering the sample's instructions and controls */
   private getControls() {
-    const enableCreateAlertButton = (this.state.isImodelReady && IotAlertApp.getBlinkingElementSet().size === 0);
+    const enableCreateAlertButton = this.state.isImodelReady && IotAlertApp.getBlinkingElementSet().size === 0;
     const enableClearAllAlertButton = this.state.isImodelReady && IotAlertApp.getBlinkingElementSet().size !== 0;
     const tags = Array.from(IotAlertApp.getBlinkingElementSet());
 
