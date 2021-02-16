@@ -88,12 +88,23 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
     this.setState({ elementsMap: classElementsMap });
     const elementNames = IotAlertApp.getElementsFromClass("SHELL_AND_TUBE_HEAT_EXCHANGER_PAR", this.state.elementsMap);
     this.setState(elementNames);
+    IotAlertApp.setSelectedElements("EX-201");
     this.setState({ isImodelReady: true });
   }
 
   private _onClassChange = (e: any) => {
-    const elementNames = IotAlertApp.getElementsFromClass(e.target.value, this.state.elementsMap);
+    const className = e.target.value;
+    const elementNames = IotAlertApp.getElementsFromClass(className, this.state.elementsMap);
     this.setState({ elements: elementNames });
+    if (className === "SHELL_AND_TUBE_HEAT_EXCHANGER_PAR") {
+      IotAlertApp.setSelectedElements("EX-201");
+    } else if (className === "VERTICAL_VESSEL_PAR") {
+      IotAlertApp.setSelectedElements("V-301");
+    } else if (className === "PLATE_TYPE_HEAT_EXCHANGER") {
+      IotAlertApp.setSelectedElements("E-101");
+    } else if (className === "REBOILER_PAR") {
+      IotAlertApp.setSelectedElements("EX-302");
+    }
   }
 
   private _onElementChange = (e: any) => {
