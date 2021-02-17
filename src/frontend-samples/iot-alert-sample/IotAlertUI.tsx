@@ -40,15 +40,12 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
   }
 
   private _clearAll = (wantEmphasis: boolean) => {
+    MessageManager.clearMessages();
     IotAlertApp.setBlinkingElements([]);
     IotAlertApp.clearSelectedElements();
     this.setState({ wantEmphasis });
   }
   private _onToggleEmphasis = (wantEmphasis: boolean) => {
-    if (!wantEmphasis) {
-      IotAlertApp.setBlinkingElements([]);
-      IotAlertApp.clearSelectedElements();
-    }
     this.setState({ wantEmphasis });
     for (const elem of IotAlertApp.getSelectedElements()) {
       IotAlertApp.setBlinkingElementSet(elem);
@@ -130,6 +127,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
     if (IotAlertApp.getBlinkingElementSet().size === 0) {
       this.setState({ wantEmphasis: false });
       IotAlertApp.clearSelectedElements();
+      MessageManager.clearMessages();
     }
   }
 
