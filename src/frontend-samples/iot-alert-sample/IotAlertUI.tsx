@@ -3,18 +3,15 @@
 * See LICENSE.md in the project root for license terms and full copyright notice.
 *--------------------------------------------------------------------------------------------*/
 import * as React from "react";
-import { Button, ButtonType, MessageSeverity, Select, UnderlinedButton } from "@bentley/ui-core";
+import { Button, ButtonType, ReactMessage, Select, UnderlinedButton } from "@bentley/ui-core";
 import { ReloadableViewport } from "Components/Viewport/ReloadableViewport";
 import { ColorDef } from "@bentley/imodeljs-common";
 import IotAlertApp, { ClearOverrideAction, OverrideAction } from "./IotAlertApp";
 import { ControlPane } from "Components/ControlPane/ControlPane";
-import { IModelConnection, NotifyMessageDetails, OutputMessageAlert, OutputMessagePriority, OutputMessageType } from "@bentley/imodeljs-frontend";
+import { IModelConnection, OutputMessagePriority } from "@bentley/imodeljs-frontend";
 
 import "./IotAlert.scss";
-import { ToastMessage } from "@bentley/ui-framework";
-// import { RelativePosition } from "@bentley/ui-abstract";
-// import { Point2d } from "@bentley/geometry-core";
-import { BeDuration } from "@bentley/bentleyjs-core";
+import { MessageManager, MessageRenderer, ReactNotifyMessageDetails } from "@bentley/ui-framework";
 
 /** React state of the Sample component */
 interface IotAlertState {
@@ -56,10 +53,24 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
     for (const elem of IotAlertApp.getSelectedElements()) {
       IotAlertApp.setBlinkingElementSet(elem);
     }
-    this.doBlinking();
+
+    for (const element of IotAlertApp.getBlinkingElementSet()) {
+      MessageManager.outputMessage(new ReactNotifyMessageDetails(OutputMessagePriority.Warning, ``, this._reactMessage(element)));
+    }
+
+    this._doBlinking();
   }
 
-  private doBlinking = () => {
+  private _reactMessage(element: string): ReactMessage {
+    const reactNode = (
+      <span>
+        Alert! There is an issue with <UnderlinedButton onClick={async () => IotAlertApp.zoomToElements(element)}>{element}</UnderlinedButton>
+      </span>
+    );
+    return ({ reactNode });
+  }
+
+  private _doBlinking = () => {
     const timer = setInterval(() => {
       setTimeout(() => {
         if (new OverrideAction(ColorDef.white).run())
@@ -112,7 +123,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
     IotAlertApp.setSelectedElements(selectedElement);
   }
 
-  private removeTag = (i: any) => {
+  private _removeTag = (i: any) => {
     const newTags = Array.from(IotAlertApp.getBlinkingElementSet());
     newTags.splice(i, 1);
     IotAlertApp.setBlinkingElements(newTags);
@@ -120,20 +131,6 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
       this.setState({ wantEmphasis: false });
       IotAlertApp.clearSelectedElements();
     }
-  }
-
-  private createMessage = (tag: any) => {
-    // const vp = IModelApp.viewManager.selectedView!;
-    // const width = 376;
-    // const height = 110;
-    // const y = window.innerHeight - height - 3;
-    // const x = (window.innerWidth - width) / 6;
-    const notifyMessage = new NotifyMessageDetails(OutputMessagePriority.Warning, ``, `Alert! There is an issue with ${tag}.`, OutputMessageType.Toast, OutputMessageAlert.None);
-    // notifyMessage.relativePosition = RelativePosition.Bottom;
-    // notifyMessage.displayPoint = new Point2d(1119, 718);
-    notifyMessage.displayTime = BeDuration.fromMilliseconds(5000);
-    // notifyMessage.viewport = vp.target;
-    return notifyMessage;
   }
 
   /** Components for rendering the sample's instructions and controls */
@@ -170,7 +167,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
                   {tags !== undefined ? tags.map((tag, i) => (
                     <li key={tag}>
                       <UnderlinedButton onClick={async () => IotAlertApp.zoomToElements(tag)}>{tag}</UnderlinedButton>
-                      <button type="button" onClick={() => { this.removeTag(i); }}>+</button>
+                      <button type="button" onClick={() => { this._removeTag(i); }}>+</button>
                     </li>
                   )) : ""}
                 </ul>
@@ -186,12 +183,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
   public render() {
     return (
       <>
-        {
-          this.state.wantEmphasis && Array.from(IotAlertApp.getBlinkingElementSet()) !== undefined ? Array.from(IotAlertApp.getBlinkingElementSet()).map((tag) => (
-            // <MessageBox onButtonClick={async () => IotAlertApp.zoomToElements(tag)} isOpen={this.state.wantEmphasis} message={`Alert coming from element ${tag}.`} id={tag} key={tag} />
-            <ToastMessage id={tag} messageDetails={this.createMessage(tag)} severity={MessageSeverity.Warning} toastTarget={null} closeMessage={() => { }} key={tag} />
-          )) : ""
-        }
+        <MessageRenderer />
         <ControlPane instructions="Manage IoT Alerts" controls={this.getControls()} iModelSelector={this.props.iModelSelector}></ControlPane>
         <ReloadableViewport iModelName={this.props.iModelName} onIModelReady={this._onIModelReady} />
       </>
