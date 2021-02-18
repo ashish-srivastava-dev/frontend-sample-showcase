@@ -5,97 +5,31 @@
 import * as React from "react";
 import "@bentley/icons-generic-webfont/dist/bentley-icons-generic-webfont.css";
 import "common/samples-common.scss";
-import { EmphasizeElements, FeatureOverrideType, IModelApp, IModelConnection, ScreenViewport, ViewChangeOptions } from "@bentley/imodeljs-frontend";
+import { EmphasizeElements, FeatureOverrideType, IModelApp, IModelConnection, ScreenViewport } from "@bentley/imodeljs-frontend";
 import { ColorDef } from "@bentley/imodeljs-common";
 import IotAlertUI from "./IotAlertUI";
 import SampleApp from "common/SampleApp";
 
 export default class IotAlertApp implements SampleApp {
-  private static elementNameIdMap: Map<string, string> = new Map();
-  private static blinkingElementSet = new Set<string>();
-  private static selectedElements: string[] = [];
-  private static elementObjects: string[];
+  public static doBlinking = (wantEmphasis: boolean, blinkingElementSet: Set<string>, elementNameIdMap: Map<string, string>) => {
+    const timer = setInterval(() => {
+      setTimeout(() => {
+        new OverrideAction(ColorDef.white).run(blinkingElementSet, elementNameIdMap);
+      }, 1000);
 
-  public static getElementNameIdMap() {
-    return IotAlertApp.elementNameIdMap;
-  }
+      setTimeout(() => {
+        new ClearOverrideAction().run(blinkingElementSet, elementNameIdMap);
+      }, 2000);
 
-  public static setElementNameIdMap(elementNameIdMap: any) {
-    for (const [key, value] of elementNameIdMap) {
-      IotAlertApp.elementNameIdMap.set(key, value);
-    }
-  }
-
-  public static getBlinkingElementSet() {
-    return this.blinkingElementSet;
-  }
-
-  public static setBlinkingElementSet(selectedElement: string) {
-    if (selectedElement === undefined) {
-      return;
-    }
-    IotAlertApp.blinkingElementSet.add(selectedElement);
-  }
-
-  public static clearBlinkingElementSet() {
-    IotAlertApp.blinkingElementSet.clear();
-  }
-
-  public static getSelectedElements() {
-    return this.selectedElements;
-  }
-
-  public static setSelectedElements(selectedElement: string) {
-    if (selectedElement === undefined) {
-      return;
-    }
-    IotAlertApp.selectedElements.push(selectedElement);
-  }
-
-  public static clearSelectedElements() {
-    IotAlertApp.selectedElements = [];
-  }
-
-  public static setBlinkingElements(elements: string[]) {
-    IotAlertApp.blinkingElementSet.clear();
-    for (const t of elements) {
-      IotAlertApp.setBlinkingElementSet(t);
-    }
-  }
-
-  public static zoomToElements = async (id: string) => {
-    const viewChangeOpts: ViewChangeOptions = {};
-    viewChangeOpts.animateFrustumChange = true;
-    const vp = IModelApp.viewManager.selectedView!;
-    const ids = new Set<string>();
-    const m = IotAlertApp.getElementNameIdMap();
-    for (const [key, value] of m) {
-      if (key === id) {
-        ids.add(value);
+      if (!wantEmphasis) {
+        clearInterval(timer);
       }
-    }
-    await vp.zoomToElements(ids, { ...viewChangeOpts });
-  }
-
-  public static getElementsFromClass = (className: string, elementsMap: Map<string, []>) => {
-    const classElements: any = elementsMap.get(className);
-    const elementNames: any = [];
-    const elementNameIdMap = new Map();
-    if (classElements === undefined) {
-      return elementNames;
-    }
-    for (const element of classElements) {
-      elementNames.push(element.cOMPONENT_NAME);
-      elementNameIdMap.set(element.cOMPONENT_NAME, element.id);
-    }
-    IotAlertApp.setElementNameIdMap(elementNameIdMap);
-    return elementNames;
+    }, 2000);
   }
 
   public static async fetchElements(imodel: IModelConnection, c: string) {
     const elementMapQuery = `SELECT * FROM ProcessPhysical.${c}`;
-    IotAlertApp.elementObjects = await this._executeQuery(imodel, elementMapQuery);
-    return IotAlertApp.elementObjects;
+    return this._executeQuery(imodel, elementMapQuery);
   }
 
   public static async setup(iModelName: string, iModelSelector: React.ReactNode) {
@@ -126,7 +60,7 @@ export default class IotAlertApp implements SampleApp {
 abstract class EmphasizeActionBase {
   protected abstract execute(emph: EmphasizeElements, vp: ScreenViewport): boolean;
 
-  public run(): boolean {
+  public run(blinkingElementSet: Set<string>, elementNameIdMap: Map<string, string>): boolean {
     const vp = IModelApp.viewManager.selectedView;
 
     if (undefined === vp) {
@@ -134,22 +68,14 @@ abstract class EmphasizeActionBase {
     }
 
     if (vp) {
-      // Select some elements
       const ids = new Set<string>();
-      const m = IotAlertApp.getElementNameIdMap();
-      // console.log(`EmphasizeActionBase m: ${m}`);
-      for (const [key, value] of m) {
-        const selectedElements = IotAlertApp.getBlinkingElementSet();
-        // console.log(`EmphasizeActionBase selectedElement: ${selectedElement}`);
-        for (const element of selectedElements) {
+      for (const [key, value] of elementNameIdMap) {
+        for (const element of blinkingElementSet) {
           if (key === element) {
             ids.add(value);
-            // console.log(`EmphasizeActionBase inside if: ${value}`);
           }
         }
       }
-      // ids.add("0x40000000329");//metro station
-      // ids.add("0x20000001381");//CoffsHarborDemo
       vp.view.iModel.selectionSet.replace(ids);
     }
 
@@ -157,56 +83,6 @@ abstract class EmphasizeActionBase {
     return this.execute(emph, vp);
   }
 }
-
-export class EmphasizeAction extends EmphasizeActionBase {
-  private _wantEmphasis: boolean;
-
-  public constructor(wantEmphasis: boolean) {
-    super();
-    this._wantEmphasis = wantEmphasis;
-  }
-  public execute(emph: EmphasizeElements, vp: ScreenViewport): boolean {
-    emph.wantEmphasis = this._wantEmphasis;
-    emph.emphasizeSelectedElements(vp);
-    return true;
-  }
-}
-
-export class ClearEmphasizeAction extends EmphasizeActionBase {
-  public execute(emph: EmphasizeElements, vp: ScreenViewport): boolean {
-    emph.clearEmphasizedElements(vp);
-    return true;
-  }
-}
-
-export class HideAction extends EmphasizeActionBase {
-  public execute(emph: EmphasizeElements, vp: ScreenViewport): boolean {
-    emph.hideSelectedElements(vp);
-    return true;
-  }
-}
-
-export class ClearHideAction extends EmphasizeActionBase {
-  public execute(emph: EmphasizeElements, vp: ScreenViewport): boolean {
-    emph.clearHiddenElements(vp);
-    return true;
-  }
-}
-
-export class IsolateAction extends EmphasizeActionBase {
-  public execute(emph: EmphasizeElements, vp: ScreenViewport): boolean {
-    emph.isolateSelectedElements(vp);
-    return true;
-  }
-}
-
-export class ClearIsolateAction extends EmphasizeActionBase {
-  public execute(emph: EmphasizeElements, vp: ScreenViewport): boolean {
-    emph.clearIsolatedElements(vp);
-    return true;
-  }
-}
-
 export class OverrideAction extends EmphasizeActionBase {
   private _colorValue: ColorDef;
 
