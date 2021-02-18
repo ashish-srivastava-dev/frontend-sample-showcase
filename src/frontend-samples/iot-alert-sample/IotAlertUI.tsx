@@ -40,7 +40,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
     };
   }
 
-  private getElementsFromClass = (className: string, elementsMap: Map<string, []>) => {
+  private _getElementsFromClass = (className: string, elementsMap: Map<string, []>) => {
     const classElements: any = elementsMap.get(className);
     const elementNames: any = [];
     const tempMap = new Map();
@@ -64,7 +64,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
 
   private _onToggleEmphasis = (wantEmphasis: boolean) => {
     this.setState({ wantEmphasis });
-    this.setBlinkingElementSet(this.state.selectedElement);
+    this._setBlinkingElementSet(this.state.selectedElement);
     MessageManager.outputMessage(new ReactNotifyMessageDetails(OutputMessagePriority.Warning, ``, this._reactMessage(this.state.selectedElement)));
     IotAlertApp.doBlinking(this.state.wantEmphasis, this.state.blinkingElementSet, this.state.elementNameIdMap);
   }
@@ -72,13 +72,13 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
   private _reactMessage(element: string): ReactMessage {
     const reactNode = (
       <span>
-        Alert! There is an issue with <UnderlinedButton onClick={async () => this.zoomToElements(element)}>{element}</UnderlinedButton>
+        Alert! There is an issue with <UnderlinedButton onClick={async () => this._zoomToElements(element)}>{element}</UnderlinedButton>
       </span>
     );
     return ({ reactNode });
   }
 
-  private zoomToElements = async (id: string) => {
+  private _zoomToElements = async (id: string) => {
     const viewChangeOpts: ViewChangeOptions = {};
     viewChangeOpts.animateFrustumChange = true;
     const vp = IModelApp.viewManager.selectedView!;
@@ -91,16 +91,16 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
     await vp.zoomToElements(ids, { ...viewChangeOpts });
   }
 
-  private classList = ["SHELL_AND_TUBE_HEAT_EXCHANGER_PAR", "VERTICAL_VESSEL_PAR", "PLATE_TYPE_HEAT_EXCHANGER", "REBOILER_PAR"];
+  private _classList = ["SHELL_AND_TUBE_HEAT_EXCHANGER_PAR", "VERTICAL_VESSEL_PAR", "PLATE_TYPE_HEAT_EXCHANGER", "REBOILER_PAR"];
 
   private _onIModelReady = async (imodel: IModelConnection) => {
     const classElementsMap = new Map();
-    for (const c of this.classList) {
+    for (const c of this._classList) {
       const elements = await IotAlertApp.fetchElements(imodel, c);
       classElementsMap.set(c, elements);
     }
     this.setState({ elementsMap: classElementsMap });
-    const elementNames = this.getElementsFromClass("SHELL_AND_TUBE_HEAT_EXCHANGER_PAR", this.state.elementsMap);
+    const elementNames = this._getElementsFromClass("SHELL_AND_TUBE_HEAT_EXCHANGER_PAR", this.state.elementsMap);
     this.setState(elementNames);
     this.setState({ selectedElement: "EX-201" });
     this.setState({ isImodelReady: true });
@@ -108,7 +108,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
 
   private _onClassChange = (e: any) => {
     const className = e.target.value;
-    const elementNames = this.getElementsFromClass(className, this.state.elementsMap);
+    const elementNames = this._getElementsFromClass(className, this.state.elementsMap);
     this.setState({ elements: elementNames });
     if (className === "SHELL_AND_TUBE_HEAT_EXCHANGER_PAR") {
       this.setState({ selectedElement: "EX-201" });
@@ -126,7 +126,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
     this.setState({ selectedElement: pickedElement });
   }
 
-  private setBlinkingElementSet(selectedElement: string) {
+  private _setBlinkingElementSet(selectedElement: string) {
     if (selectedElement === undefined) {
       return;
     }
@@ -156,7 +156,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
         <div className="sample-options-2col">
           <span>Pick class</span>
           <Select
-            options={this.classList}
+            options={this._classList}
             onChange={this._onClassChange}
             disabled={!this.state.isImodelReady}
           />
@@ -178,7 +178,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
                 <ul className="input-tag__tags">
                   {tags !== undefined ? tags.map((tag, i) => (
                     <li key={tag}>
-                      <UnderlinedButton onClick={async () => this.zoomToElements(tag)}>{tag}</UnderlinedButton>
+                      <UnderlinedButton onClick={async () => this._zoomToElements(tag)}>{tag}</UnderlinedButton>
                       <button type="button" onClick={() => { this._removeTag(i); }}>+</button>
                     </li>
                   )) : ""}
