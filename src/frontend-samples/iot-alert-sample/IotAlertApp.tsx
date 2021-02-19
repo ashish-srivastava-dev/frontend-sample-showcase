@@ -11,21 +11,6 @@ import IotAlertUI from "./IotAlertUI";
 import SampleApp from "common/SampleApp";
 
 export default class IotAlertApp implements SampleApp {
-  public static doBlinking = (wantEmphasis: boolean, blinkingElementSet: Set<string>, elementNameIdMap: Map<string, string>) => {
-    const timer = setInterval(() => {
-      setTimeout(() => {
-        new OverrideAction(ColorDef.white).run(blinkingElementSet, elementNameIdMap);
-      }, 1000);
-
-      setTimeout(() => {
-        new ClearOverrideAction().run(blinkingElementSet, elementNameIdMap);
-      }, 2000);
-
-      if (!wantEmphasis) {
-        clearInterval(timer);
-      }
-    }, 2000);
-  }
 
   public static async fetchElements(imodel: IModelConnection, c: string) {
     const elementMapQuery = `SELECT * FROM ProcessPhysical.${c}`;
@@ -60,7 +45,7 @@ export default class IotAlertApp implements SampleApp {
 abstract class EmphasizeActionBase {
   protected abstract execute(emph: EmphasizeElements, vp: ScreenViewport): boolean;
 
-  public run(blinkingElementSet: Set<string>, elementNameIdMap: Map<string, string>): boolean {
+  public run(blinkingElementSet: string[], elementNameIdMap: Map<string, string>): boolean {
     const vp = IModelApp.viewManager.selectedView;
 
     if (undefined === vp) {

@@ -5,12 +5,13 @@
 import * as React from "react";
 import { Button, ButtonType, ReactMessage, Select, UnderlinedButton } from "@bentley/ui-core";
 import { ReloadableViewport } from "Components/Viewport/ReloadableViewport";
-import IotAlertApp from "./IotAlertApp";
+import IotAlertApp, { ClearOverrideAction, OverrideAction } from "./IotAlertApp";
 import { ControlPane } from "Components/ControlPane/ControlPane";
 import { IModelApp, IModelConnection, OutputMessagePriority, ViewChangeOptions } from "@bentley/imodeljs-frontend";
 
 import "./IotAlert.scss";
 import { MessageManager, MessageRenderer, ReactNotifyMessageDetails } from "@bentley/ui-framework";
+import { ColorDef } from "@bentley/imodeljs-common";
 
 /** React state of the Sample component */
 interface IotAlertState {
@@ -20,7 +21,7 @@ interface IotAlertState {
   elements: string[];
   isImodelReady: boolean;
   selectedElement: string;
-  blinkingElementSet: Set<string>;
+  blinkingElements: string[];
 }
 
 /** A React component that renders the UI specific for this sample */
@@ -36,7 +37,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
       elements: ["EX-201", "EX-202", "EX-203", "EX-204", "EX-205"],
       isImodelReady: false,
       selectedElement: "EX-201",
-      blinkingElementSet: new Set<string>(),
+      blinkingElements: [],
     };
   }
 
@@ -56,20 +57,41 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
     return elementNames;
   }
 
-  private _clearAll = (wantEmphasis: boolean) => {
+  private _clearAll = () => {
     MessageManager.clearMessages();
-    this.setState({ blinkingElementSet: new Set<string>() });
-    this.setState({ wantEmphasis });
+    // console.log(`_clearAll: Before clearing elements: blinkingElements: ${this.state.blinkingElements}`);
+    this.setState({ blinkingElements: [], wantEmphasis: false });
+    // console.log(`_clearAll: After clearing elements: blinkingElements: ${this.state.blinkingElements}`);
   }
 
-  private _onToggleEmphasis = (wantEmphasis: boolean) => {
-    this.setState({ wantEmphasis });
-    this._setBlinkingElementSet(this.state.selectedElement);
+  private doBlinking = (blinkingElementSet: string[], elementNameIdMap: Map<string, string>) => {
+    const timer = setInterval(() => {
+      setTimeout(() => {
+        new OverrideAction(ColorDef.white).run(blinkingElementSet, elementNameIdMap);
+      }, 1000);
+
+      setTimeout(() => {
+        new ClearOverrideAction().run(blinkingElementSet, elementNameIdMap);
+      }, 2000);
+
+      if (!this.state.wantEmphasis) {
+        clearInterval(timer);
+      }
+    }, 2000);
+  }
+
+  private _onToggleEmphasis = () => {
+    // console.log(`_onToggleEmphasis:  Before setting blinkingElements: ${this.state.blinkingElements}`);
+    const tempSet = this.state.blinkingElements;
+    tempSet.push(this.state.selectedElement);
+    this.setState({ blinkingElements: tempSet, wantEmphasis: true });
+    // console.log(`_onToggleEmphasis:  After setting blinkingElements: ${this.state.blinkingElements}`);
     MessageManager.outputMessage(new ReactNotifyMessageDetails(OutputMessagePriority.Warning, ``, this._reactMessage(this.state.selectedElement)));
-    IotAlertApp.doBlinking(this.state.wantEmphasis, this.state.blinkingElementSet, this.state.elementNameIdMap);
+    this.doBlinking(this.state.blinkingElements, this.state.elementNameIdMap);
   }
 
   private _reactMessage(element: string): ReactMessage {
+    // console.log(`_reactMessage: ${element}`);
     const reactNode = (
       <span>
         Alert! There is an issue with <UnderlinedButton onClick={async () => this._zoomToElements(element)}>{element}</UnderlinedButton>
@@ -86,6 +108,7 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
     for (const [key, value] of this.state.elementNameIdMap) {
       if (key === id) {
         ids.add(value);
+        // console.log(`_zoomToElements: ${id}`);
       }
     }
     await vp.zoomToElements(ids, { ...viewChangeOpts });
@@ -126,20 +149,14 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
     this.setState({ selectedElement: pickedElement });
   }
 
-  private _setBlinkingElementSet(selectedElement: string) {
-    if (selectedElement === undefined) {
-      return;
-    }
-    const tempSet = this.state.blinkingElementSet;
-    tempSet.add(selectedElement);
-    this.setState({ blinkingElementSet: tempSet });
-  }
-
   private _removeTag = (i: any) => {
-    const newTags = Array.from(this.state.blinkingElementSet);
+    // console.log(`_removeTag: Before removing element: blinkingElements: ${this.state.blinkingElements}`);
+    const newTags = this.state.blinkingElements;
     newTags.splice(i, 1);
-    this.setState({ blinkingElementSet: new Set(newTags) });
-    if (this.state.blinkingElementSet.size === 0) {
+    // console.log(`_removeTag: newTags: ${newTags}`);
+    this.setState({ blinkingElements: newTags });
+    // console.log(`_removeTag: After removing element: blinkingElements: ${this.state.blinkingElements}`);
+    if (this.state.blinkingElements.length === 0) {
       this.setState({ wantEmphasis: false });
       MessageManager.clearMessages();
     }
@@ -147,9 +164,9 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
 
   /** Components for rendering the sample's instructions and controls */
   private getControls() {
-    const enableCreateAlertButton = (this.state.isImodelReady && this.state.selectedElement && !this.state.blinkingElementSet.has(this.state.selectedElement));
-    const enableClearAllAlertButton = this.state.isImodelReady && this.state.blinkingElementSet.size !== 0;
-    const tags = Array.from(this.state.blinkingElementSet);
+    const enableCreateAlertButton = this.state.isImodelReady && this.state.selectedElement && !this.state.blinkingElements.includes(this.state.selectedElement);
+    const enableClearAllAlertButton = this.state.isImodelReady && this.state.blinkingElements.length !== 0;
+    const tags = this.state.blinkingElements;
 
     return (
       <>
@@ -168,8 +185,8 @@ export default class IotAlertUI extends React.Component<{ iModelName: string, iM
           />
           <span>Alert</span>
           <div className="sample-options-2col-1">
-            <Button buttonType={ButtonType.Primary} onClick={() => this._onToggleEmphasis(true)} disabled={!enableCreateAlertButton}>Create</Button>
-            <Button buttonType={ButtonType.Primary} onClick={() => this._clearAll(false)} disabled={!enableClearAllAlertButton}>Clear all</Button>
+            <Button buttonType={ButtonType.Primary} onClick={() => this._onToggleEmphasis()} disabled={!enableCreateAlertButton}>Create</Button>
+            <Button buttonType={ButtonType.Primary} onClick={() => this._clearAll()} disabled={!enableClearAllAlertButton}>Clear all</Button>
           </div>
           <span>Active Alert(s) </span>
           {this.state.wantEmphasis ?
